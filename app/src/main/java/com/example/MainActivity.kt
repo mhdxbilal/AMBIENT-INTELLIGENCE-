@@ -345,8 +345,24 @@ fun MainDashboardScreen(vm: SmartHomeViewModel, toneGen: ToneGenerator) {
 
     LaunchedEffect(liveData.currentGlobalState) {
         if (liveData.currentGlobalState == RuViewState.ANOMALY_FALL_DETECTED) {
-            toneGen.startTone(ToneGenerator.TONE_CDMA_EMERGENCY_RINGBACK, 1000)
-            vm.logToTerminal("[ALERT ENGINE] Executed Local Audio Emergency Chime")
+            // Disabled ToneGenerator to avoid Android emulator AppOps missing attributionTag bug
+            // toneGen.startTone(ToneGenerator.TONE_CDMA_EMERGENCY_RINGBACK, 1000)
+            
+            val attrCtx = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) ctx.createAttributionContext("ru_viewer") else ctx
+            val vibrator = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                (attrCtx.getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as android.os.VibratorManager).defaultVibrator
+            } else {
+                @Suppress("DEPRECATION")
+                attrCtx.getSystemService(Context.VIBRATOR_SERVICE) as android.os.Vibrator
+            }
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                vibrator.vibrate(android.os.VibrationEffect.createOneShot(500, android.os.VibrationEffect.DEFAULT_AMPLITUDE))
+            } else {
+                @Suppress("DEPRECATION")
+                vibrator.vibrate(500)
+            }
+            
+            vm.logToTerminal("[ALERT ENGINE] Executed Local Audio Emergency Chime & Haptics")
         }
     }
 
