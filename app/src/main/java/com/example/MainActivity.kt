@@ -346,18 +346,6 @@ fun MainDashboardScreen(vm: SmartHomeViewModel, toneGen: ToneGenerator) {
     LaunchedEffect(liveData.currentGlobalState) {
         if (liveData.currentGlobalState == RuViewState.ANOMALY_FALL_DETECTED) {
             toneGen.startTone(ToneGenerator.TONE_CDMA_EMERGENCY_RINGBACK, 1000)
-            val vibrator = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                (ctx.getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as android.os.VibratorManager).defaultVibrator
-            } else {
-                @Suppress("DEPRECATION")
-                ctx.getSystemService(Context.VIBRATOR_SERVICE) as android.os.Vibrator
-            }
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                vibrator.vibrate(android.os.VibrationEffect.createOneShot(500, android.os.VibrationEffect.DEFAULT_AMPLITUDE))
-            } else {
-                @Suppress("DEPRECATION")
-                vibrator.vibrate(500)
-            }
             vm.logToTerminal("[ALERT ENGINE] Executed Local Audio Emergency Chime")
         }
     }
