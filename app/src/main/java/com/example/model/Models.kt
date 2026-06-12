@@ -12,13 +12,15 @@ data class Room(
     val name: String,
     val state: SensingState,
     val breathingRate: Int? = null, // 6-30
-    val heartRate: Int? = null      // 40-120
+    val heartRate: Int? = null,      // 40-120
+    val sensitivity: Float = 50f
 )
 
 data class AutomationRule(
     val id: String,
     val description: String,
-    val isEnabled: Boolean
+    val isEnabled: Boolean,
+    val devices: List<String> = emptyList()
 )
 
 enum class NodeStatus(val displayName: String) {
@@ -31,5 +33,6 @@ data class NetworkNode(
     val type: String,
     val status: NodeStatus,
     val ipAddress: String,
-    val signalIntegrity: Int // 0-100%
+    val signalIntegrity: Int, // 0-100%
+    val sensitivity: Float = 50f // 0f - 100f
 )
