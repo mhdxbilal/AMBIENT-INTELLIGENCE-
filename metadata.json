@@ -1,0 +1,6 @@
+{
+  "name": "RuView",
+  "description": "Smart home automation manager powered by RuView Ambient Intelligence via WiFi CSI signals and local Matter automation.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
