@@ -231,14 +231,11 @@ class SmartHomeViewModel(application: Application) : AndroidViewModel(applicatio
             
             if (Random.nextFloat() > 0.7f) {
                 val obs = StaticFurnitureMap("slam_${tickCount}", FurnitureType.CHAIR, p1TargetX - 50f, p1TargetY - 50f, 50f, 50f, Random.nextInt(50, 90))
-                viewModelScope.launch {
-                    trackingDao.insertFurniture(listOf(obs))
-                }
+                viewModelScope.launch { trackingDao.insertFurniture(listOf(obs)) }
                 logToTerminal("[WiFi SLAM] Radio reflection distortion detected static object at X:${obs.xGrid.toInt()}, Y:${obs.yGrid.toInt()}")
             }
         }
         
-        // WiFi RTT Multilateration calculation log
         if (tickCount % 5 == 0) {
             val rttDistance = Math.sqrt((currentX * currentX + currentY * currentY).toDouble()).toFloat()
             logToTerminal("[WiFi RTT] Multilateration range computed: String ${rttDistance}mm, Acc: 1-2m.")
@@ -307,10 +304,13 @@ class MainActivity : ComponentActivity() {
             MyApplicationTheme {
                 val vm = viewModel<SmartHomeViewModel>()
                 val state by vm.currentAppState.collectAsState()
-                if (state == AppState.SPLASH) {
-                    SplashScreen { vm.setAppState(AppState.MAIN_DASHBOARD) }
-                } else {
-                    MainDashboardScreen(vm, toneGen)
+                
+                Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
+                    if (state == AppState.SPLASH) {
+                        SplashScreen { vm.setAppState(AppState.MAIN_DASHBOARD) }
+                    } else {
+                        MainDashboardScreen(vm, toneGen)
+                    }
                 }
             }
         }
@@ -319,19 +319,28 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 fun SplashScreen(onDone: () -> Unit) {
-    LaunchedEffect(Unit) { delay(5000); onDone() }
+    LaunchedEffect(Unit) { delay(4000); onDone() }
     Box(
-        modifier = Modifier.fillMaxSize().background(Color(0xFF070B14)),
+        modifier = Modifier.fillMaxSize(),
         contentAlignment = Alignment.Center
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text("Created By : Muhammed Bilal C", style = MaterialTheme.typography.headlineSmall, color = Color.White)
+            Surface(shape = RoundedCornerShape(24.dp), color = MaterialTheme.colorScheme.primaryContainer, modifier = Modifier.size(100.dp)) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(Icons.Default.Shield, contentDescription = "Logo", tint = MaterialTheme.colorScheme.onPrimaryContainer, modifier = Modifier.size(48.dp))
+                }
+            }
+            Spacer(modifier = Modifier.height(24.dp))
+            Text("RuViewer", style = MaterialTheme.typography.displaySmall, color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold)
             Spacer(modifier = Modifier.height(8.dp))
-            Text("Using Google AI Studio", style = MaterialTheme.typography.bodyLarge, color = Color.Cyan)
-            Spacer(modifier = Modifier.height(4.dp))
-            Text("E-Mail : mbc4294@gmail.com", style = MaterialTheme.typography.bodyMedium, color = Color.Gray)
+            Text("Advanced Spatial Sensing", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Spacer(modifier = Modifier.height(32.dp))
-            CircularProgressIndicator(color = Color(0xFF00E676))
+            CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
+        }
+        Column(modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 64.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+            Text("Created By : Muhammed Bilal C", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.SemiBold)
+            Text("Using Google AI Studio", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text("E-Mail : mbc4294@gmail.com", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline)
         }
     }
 }
@@ -345,9 +354,6 @@ fun MainDashboardScreen(vm: SmartHomeViewModel, toneGen: ToneGenerator) {
 
     LaunchedEffect(liveData.currentGlobalState) {
         if (liveData.currentGlobalState == RuViewState.ANOMALY_FALL_DETECTED) {
-            // Disabled ToneGenerator to avoid Android emulator AppOps missing attributionTag bug
-            // toneGen.startTone(ToneGenerator.TONE_CDMA_EMERGENCY_RINGBACK, 1000)
-            
             val attrCtx = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) ctx.createAttributionContext("ru_viewer") else ctx
             val vibrator = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
                 (attrCtx.getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as android.os.VibratorManager).defaultVibrator
@@ -361,21 +367,16 @@ fun MainDashboardScreen(vm: SmartHomeViewModel, toneGen: ToneGenerator) {
                 @Suppress("DEPRECATION")
                 vibrator.vibrate(500)
             }
-            
             vm.logToTerminal("[ALERT ENGINE] Executed Local Audio Emergency Chime & Haptics")
         }
     }
 
-    val bg = Color(0xFF0F111A)
-    val accent = Color(0xFF00E676)
-
     Scaffold(
-        containerColor = bg,
         bottomBar = {
-            NavigationBar(containerColor = Color(0xFF161925)) {
-                NavigationBarItem(icon = { Icon(Icons.Default.Map, null) }, label = { Text("3D Spatial") }, selected = tab == 0, onClick = { vm.changeTab(0) }, colors = NavigationBarItemDefaults.colors(selectedIconColor = bg, selectedTextColor = accent, indicatorColor = accent, unselectedIconColor = Color.Gray, unselectedTextColor = Color.Gray))
-                NavigationBarItem(icon = { Icon(Icons.Default.RuleFolder, null) }, label = { Text("Automation") }, selected = tab == 1, onClick = { vm.changeTab(1) }, colors = NavigationBarItemDefaults.colors(selectedIconColor = bg, selectedTextColor = accent, indicatorColor = accent, unselectedIconColor = Color.Gray, unselectedTextColor = Color.Gray))
-                NavigationBarItem(icon = { Icon(Icons.Default.BugReport, null) }, label = { Text("Diagnostics") }, selected = tab == 2, onClick = { vm.changeTab(2) }, colors = NavigationBarItemDefaults.colors(selectedIconColor = bg, selectedTextColor = accent, indicatorColor = accent, unselectedIconColor = Color.Gray, unselectedTextColor = Color.Gray))
+            NavigationBar(containerColor = MaterialTheme.colorScheme.surfaceVariant, tonalElevation = 8.dp) {
+                NavigationBarItem(icon = { Icon(Icons.Default.Map, null) }, label = { Text("3D Spatial") }, selected = tab == 0, onClick = { vm.changeTab(0) })
+                NavigationBarItem(icon = { Icon(Icons.Default.RuleFolder, null) }, label = { Text("Automation") }, selected = tab == 1, onClick = { vm.changeTab(1) })
+                NavigationBarItem(icon = { Icon(Icons.Default.BugReport, null) }, label = { Text("Diagnostics") }, selected = tab == 2, onClick = { vm.changeTab(2) })
             }
         }
     ) { p ->
@@ -390,8 +391,14 @@ fun MainDashboardScreen(vm: SmartHomeViewModel, toneGen: ToneGenerator) {
                 visible = liveData.currentGlobalState == RuViewState.ANOMALY_FALL_DETECTED,
                 modifier = Modifier.align(Alignment.TopCenter)
             ) {
-                Box(Modifier.fillMaxWidth().background(Color(0xFFFF1744)).padding(16.dp), Alignment.Center) {
-                    Text("CRITICAL ALERT: FALL DETECTED", color = Color.White, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleMedium)
+                Card(
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer), 
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 32.dp).padding(top = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()),
+                    elevation = CardDefaults.elevatedCardElevation(12.dp)
+                ) {
+                    Box(Modifier.fillMaxWidth().padding(16.dp), Alignment.Center) {
+                        Text("CRITICAL ALERT: FALL DETECTED", color = MaterialTheme.colorScheme.onErrorContainer, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleLarge)
+                    }
                 }
             }
         }
@@ -406,107 +413,126 @@ fun SpatialTab(vm: SmartHomeViewModel) {
     val px by vm.panX.collectAsState()
     val py by vm.panY.collectAsState()
     val rot by vm.rotationAngle.collectAsState()
+    
+    val primaryColor = MaterialTheme.colorScheme.primary
+    val secondaryColor = MaterialTheme.colorScheme.secondary
+    val tertiaryColor = MaterialTheme.colorScheme.tertiary
+    val errorColor = MaterialTheme.colorScheme.error
+    val onSurface = MaterialTheme.colorScheme.onSurface
 
     Box(modifier = Modifier.fillMaxSize()) {
-        Column(modifier = Modifier.fillMaxSize()) {
-            Spacer(Modifier.windowInsetsTopHeight(WindowInsets.statusBars))
-            Spacer(Modifier.height(if (live.currentGlobalState == RuViewState.ANOMALY_FALL_DETECTED) 40.dp else 0.dp))
-            
-            Row(Modifier.horizontalScroll(rememberScrollState()).padding(horizontal = 16.dp, vertical = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                SelectedArea.values().forEach { a ->
-                    FilterChip(selected = a == area, onClick = { vm.setArea(a) }, label = { Text(a.name.replace("_", " ")) }, colors = FilterChipDefaults.filterChipColors(selectedContainerColor = Color(0xFF00E676), selectedLabelColor = Color.Black))
-                }
+        Box(Modifier.fillMaxSize().pointerInput(Unit) {
+            detectTransformGestures { _, pan, zoom, rotation -> 
+                vm.adjustZoom(zoom)
+                vm.adjustPan(pan.x, pan.y)
+                vm.adjustRotation(rotation)
             }
+        }) {
+            Canvas(Modifier.fillMaxSize()) {
+                val cx = size.width / 2f + px
+                val cy = size.height / 2f + py
+                translate(cx, cy) {
+                    val rotRad = rot * Math.PI / 180f
+                    val rCos = cos(rotRad).toFloat()
+                    val rSin = sin(rotRad).toFloat()
+                    
+                    val ca = cos(Math.PI / 6).toFloat()
+                    val sa = sin(Math.PI / 6).toFloat()
+                    
+                    fun tIso(xGrid: Float, yGrid: Float): Offset {
+                        val cntX = 400f; val cntY = 250f
+                        val relX = xGrid - cntX
+                        val relY = yGrid - cntY
+                        val rx = relX * rCos - relY * rSin + cntX
+                        val ry = relX * rSin + relY * rCos + cntY
+                        return Offset((rx - ry) * ca * z, (rx + ry) * sa * z)
+                    }
 
-            Box(Modifier.fillMaxSize().pointerInput(Unit) {
-                detectTransformGestures { _, pan, zoom, rotation -> 
-                    vm.adjustZoom(zoom)
-                    vm.adjustPan(pan.x, pan.y)
-                    vm.adjustRotation(rotation)
-                }
-            }) {
-                Canvas(Modifier.fillMaxSize()) {
-                    val cx = size.width / 2f + px
-                    val cy = size.height / 2f + py
-                    translate(cx, cy) {
-                        val rotRad = rot * Math.PI / 180f
-                        val rCos = cos(rotRad).toFloat()
-                        val rSin = sin(rotRad).toFloat()
+                    live.dynamicFurnitureList.forEach { o ->
+                        val p1 = tIso(o.xGrid, o.yGrid)
+                        val p2 = tIso(o.xGrid + o.width, o.yGrid)
+                        val p3 = tIso(o.xGrid + o.width, o.yGrid + o.height)
+                        val p4 = tIso(o.xGrid, o.yGrid + o.height)
+                        val p = Path().apply { moveTo(p1.x, p1.y); lineTo(p2.x, p2.y); lineTo(p3.x, p3.y); lineTo(p4.x, p4.y); close() }
                         
-                        val ca = cos(Math.PI / 6).toFloat()
-                        val sa = sin(Math.PI / 6).toFloat()
+                        when (o.type) {
+                            FurnitureType.WALL -> drawPath(p, onSurface.copy(alpha = 0.8f))
+                            FurnitureType.BENCH -> drawPath(p, secondaryColor.copy(alpha = 0.5f), style = Stroke(4f * z))
+                            FurnitureType.TABLE -> drawPath(p, tertiaryColor.copy(alpha = 0.6f))
+                            else -> drawPath(p, onSurface.copy(alpha = 0.3f))
+                        }
                         
-                        fun tIso(xGrid: Float, yGrid: Float): Offset {
-                            val cntX = 400f; val cntY = 250f
-                            val relX = xGrid - cntX
-                            val relY = yGrid - cntY
-                            val rx = relX * rCos - relY * rSin + cntX
-                            val ry = relX * rSin + relY * rCos + cntY
-                            return Offset((rx - ry) * ca * z, (rx + ry) * sa * z)
-                        }
+                        val src = if(o.id.startsWith("slam")) "SLAM" else if(o.id.startsWith("lidar")) "LiDAR" else "System"
+                        drawContext.canvas.nativeCanvas.drawText("$src (${o.confidencePercentage}%)", p1.x, p1.y - 12f*z, Paint().apply { color = android.graphics.Color.GRAY; textSize = 22f * z })
+                    }
 
-                        live.dynamicFurnitureList.forEach { o ->
-                            val p1 = tIso(o.xGrid, o.yGrid)
-                            val p2 = tIso(o.xGrid + o.width, o.yGrid)
-                            val p3 = tIso(o.xGrid + o.width, o.yGrid + o.height)
-                            val p4 = tIso(o.xGrid, o.yGrid + o.height)
-                            val p = Path().apply { moveTo(p1.x, p1.y); lineTo(p2.x, p2.y); lineTo(p3.x, p3.y); lineTo(p4.x, p4.y); close() }
-                            
-                            when (o.type) {
-                                FurnitureType.WALL -> drawPath(p, Color(0xFF1E212B))
-                                FurnitureType.BENCH -> drawPath(p, Color(0xFF90A4AE), style = Stroke(2f))
-                                FurnitureType.TABLE -> drawPath(p, Color(0xFF795548))
-                                else -> drawPath(p, Color(0xFF455A64).copy(0.6f))
-                            }
-                            
-                            val src = if(o.id.startsWith("slam")) "SLAM" else if(o.id.startsWith("lidar")) "LiDAR Mesh" else "System"
-                            drawContext.canvas.nativeCanvas.drawText("$src (Conf: ${o.confidencePercentage}%)", p1.x, p1.y - 10f, Paint().apply { color = android.graphics.Color.LTGRAY; textSize = 20f })
-                        }
+                    live.discoveredDevices.forEach { d ->
+                        val pos = tIso(d.xGrid, d.yGrid)
+                        drawCircle(primaryColor.copy(0.2f), z * 24f, pos)
+                        val p = Path().apply { moveTo(pos.x, pos.y - z*12f); lineTo(pos.x + z*10f, pos.y); lineTo(pos.x, pos.y + z*12f); lineTo(pos.x - z*10f, pos.y); close() }
+                        drawPath(p, primaryColor)
+                        drawContext.canvas.nativeCanvas.drawText("${d.name}", pos.x + 30f*z, pos.y + 10f*z, Paint().apply { color = android.graphics.Color.DKGRAY; textSize = 28f * z })
+                    }
 
-                        live.discoveredDevices.forEach { d ->
-                            val pos = tIso(d.xGrid, d.yGrid)
-                            drawCircle(Color(0xFFFFEA00).copy(0.3f), z * 20f, pos)
-                            val p = Path().apply { moveTo(pos.x, pos.y - z*10f); lineTo(pos.x + z*8f, pos.y); lineTo(pos.x, pos.y + z*10f); lineTo(pos.x - z*8f, pos.y); close() }
-                            drawPath(p, Color(0xFFFFEA00))
-                            drawContext.canvas.nativeCanvas.drawText("${d.name}\n${d.ipAddress}", pos.x + 30f, pos.y + 10f, Paint().apply { color = android.graphics.Color.YELLOW; textSize = 24f })
-                        }
-
-                        live.peopleList.forEach { per ->
-                            val p = tIso(per.xCurrent, per.yCurrent)
-                            val fall = per.postureState == "FALL_DETECTED"
-                            val c = if (fall) Color(0xFFFF1744) else Color(0xFF00E676)
-                            drawCircle(c.copy(0.4f), z * 40f, p)
-                            drawCircle(c, z * 15f, p)
-                            
-                            drawContext.canvas.nativeCanvas.apply {
-                                drawRect(p.x - 160f, p.y - z*30f - 110f, p.x + 160f, p.y - z*30f + 30f, Paint().apply { color = android.graphics.Color.argb(220, 10,15,30) })
-                                val pnt = Paint().apply { color = android.graphics.Color.WHITE; textSize = 26f; textAlign = Paint.Align.CENTER }
-                                val acc = Paint().apply { color = android.graphics.Color.CYAN; textSize = 24f; textAlign = Paint.Align.CENTER }
-                                drawText("${per.name} (X:${per.xCurrent.toInt()} Y:${per.yCurrent.toInt()})", p.x, p.y - z*30f - 70f, pnt)
-                                drawText("Posture: [${per.postureState}]", p.x, p.y - z*30f - 30f, pnt)
-                                drawText("HR: ${per.heartRate} | BR: ${per.breathingRate}", p.x, p.y - z*30f + 10f, acc)
-                            }
+                    live.peopleList.forEach { per ->
+                        val p = tIso(per.xCurrent, per.yCurrent)
+                        val fall = per.postureState == "FALL_DETECTED"
+                        val c = if (fall) errorColor else primaryColor
+                        drawCircle(c.copy(0.3f), z * 45f, p)
+                        drawCircle(c, z * 18f, p)
+                        
+                        drawContext.canvas.nativeCanvas.apply {
+                            drawRect(p.x - 170f*z, p.y - z*30f - 130f*z, p.x + 170f*z, p.y - z*30f + 40f*z, Paint().apply { color = android.graphics.Color.argb(200, 20,20,25) })
+                            val pnt = Paint().apply { color = android.graphics.Color.WHITE; textSize = 28f * z; textAlign = Paint.Align.CENTER; isFakeBoldText = true }
+                            val acc = Paint().apply { color = android.graphics.Color.CYAN; textSize = 26f * z; textAlign = Paint.Align.CENTER }
+                            drawText("${per.name} (X:${per.xCurrent.toInt()} Y:${per.yCurrent.toInt()})", p.x, p.y - z*30f - 80f*z, pnt)
+                            drawText("Posture: [${per.postureState}]", p.x, p.y - z*30f - 35f*z, pnt)
+                            drawText("HR: ${per.heartRate} | BR: ${per.breathingRate}", p.x, p.y - z*30f + 15f*z, acc)
                         }
                     }
                 }
             }
         }
+        
+        Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
+            Spacer(Modifier.windowInsetsTopHeight(WindowInsets.statusBars))
+            Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                SelectedArea.values().forEach { a ->
+                    FilterChip(
+                        selected = a == area, 
+                        onClick = { vm.setArea(a) }, 
+                        label = { Text(a.name.replace("_", " "), fontWeight = FontWeight.Medium) }
+                    )
+                }
+            }
+        }
 
-        Row(Modifier.align(Alignment.BottomCenter).padding(16.dp).background(Color(0xFF1E212B).copy(0.8f), RoundedCornerShape(12.dp)).padding(8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            IconButton(onClick = { vm.adjustZoom(1.5f) }) { Text("+", color = Color.White, fontSize = 24.sp) }
-            IconButton(onClick = { vm.adjustZoom(0.66f) }) { Text("-", color = Color.White, fontSize = 24.sp) }
-            IconButton(onClick = { vm.adjustRotation(-15f) }) { Text("↺", color = Color.White, fontSize = 24.sp) }
-            IconButton(onClick = { vm.adjustRotation(15f) }) { Text("↻", color = Color.White, fontSize = 24.sp) }
-            IconButton(onClick = { vm.resetViewport() }) { Text("R", color = Color.White, fontSize = 20.sp) }
-            Button(onClick = { vm.startLidarInitialization() }, colors = ButtonDefaults.buttonColors(Color(0xFFD500F9))) { Text("LiDAR Quick Mesh Scan") }
+        Surface(
+            modifier = Modifier.align(Alignment.BottomCenter).padding(16.dp),
+            shape = RoundedCornerShape(24.dp),
+            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.9f),
+            shadowElevation = 8.dp
+        ) {
+            Row(Modifier.padding(horizontal = 16.dp, vertical = 8.dp), horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
+                IconButton(onClick = { vm.adjustZoom(1.5f) }) { Text("+", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 28.sp, fontWeight = FontWeight.Bold) }
+                IconButton(onClick = { vm.adjustZoom(0.66f) }) { Text("-", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 32.sp, fontWeight = FontWeight.Bold) }
+                IconButton(onClick = { vm.adjustRotation(-15f) }) { Text("↺", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 24.sp, fontWeight = FontWeight.Bold) }
+                IconButton(onClick = { vm.adjustRotation(15f) }) { Text("↻", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 24.sp, fontWeight = FontWeight.Bold) }
+                IconButton(onClick = { vm.resetViewport() }) { Text("R", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 20.sp, fontWeight = FontWeight.Bold) }
+                FilledTonalButton(onClick = { vm.startLidarInitialization() }) { Text("LiDAR Scan") }
+            }
         }
 
         if (live.isLidarScanning) {
-            Box(Modifier.fillMaxSize().background(Color.Black.copy(0.7f)), Alignment.Center) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text("LiDAR Spatial Core Mapping Area Borders... [No Camera Data Saved]", color = Color(0xFFD500F9), fontWeight = FontWeight.Bold)
-                    Spacer(Modifier.height(16.dp))
-                    LinearProgressIndicator(progress = { live.lidarProgress }, color = Color(0xFFD500F9), modifier = Modifier.fillMaxWidth(0.8f))
+            Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha=0.6f)), Alignment.Center) {
+                Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface), elevation = CardDefaults.cardElevation(16.dp), modifier = Modifier.padding(32.dp)) {
+                    Column(Modifier.padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text("LiDAR Spatial Core Mapping...", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleLarge)
+                        Spacer(Modifier.height(16.dp))
+                        Text("[Zero Camera Data Saved - Processed Locally]", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Spacer(Modifier.height(24.dp))
+                        LinearProgressIndicator(progress = { live.lidarProgress }, modifier = Modifier.fillMaxWidth().height(8.dp))
+                    }
                 }
             }
         }
@@ -518,21 +544,25 @@ fun AutomationTab(vm: SmartHomeViewModel) {
     val rules by vm.automationRules.collectAsState()
     val ctx = LocalContext.current
 
-    LazyColumn(Modifier.fillMaxSize().background(Color(0xFF0F111A)).padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-        item { Spacer(Modifier.windowInsetsTopHeight(WindowInsets.statusBars)) }
-        item { Text("Auto-Discovered Automations", style = MaterialTheme.typography.headlineMedium, color = Color(0xFF00E676)) }
-        items(rules) { r ->
-            Card(colors = CardDefaults.cardColors(Color(0xFF161925)), modifier = Modifier.fillMaxWidth()) {
-                Column(Modifier.padding(16.dp)) {
-                    Text("IF ${r.triggerState} THEN ${r.actionValue} -> ${r.targetDevice}", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp)
-                    Spacer(Modifier.height(16.dp))
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                        Switch(checked = r.isActive, onCheckedChange = { vm.toggleRule(r.id) }, colors = SwitchDefaults.colors(checkedThumbColor = Color(0xFF00E676), checkedTrackColor = Color(0xFF00E676).copy(alpha = 0.3f)))
-                        Button(onClick = {
-                            Toast.makeText(ctx, "Matter RPC: COMMAND_${r.actionValue} -> ${r.targetDevice}", Toast.LENGTH_LONG).show()
-                            vm.logToTerminal("[ACTION] Executed Local Transaction Packet -> ${r.targetDevice}")
-                        }, colors = ButtonDefaults.buttonColors(Color(0xFF00E676))) {
-                            Text("Test Network Transaction Packet", color = Color.Black)
+    Column(Modifier.fillMaxSize()) {
+        Spacer(Modifier.windowInsetsTopHeight(WindowInsets.statusBars))
+        Text("Smart Automations", style = MaterialTheme.typography.displaySmall, color = MaterialTheme.colorScheme.onSurface, modifier = Modifier.padding(horizontal = 24.dp, vertical = 16.dp), fontWeight = FontWeight.Bold)
+        LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+            items(rules) { r ->
+                ElevatedCard(modifier = Modifier.fillMaxWidth()) {
+                    Column(Modifier.padding(20.dp)) {
+                        Text("Automated Trigger", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text("IF ${r.triggerState}\nTHEN ${r.actionValue} -> ${r.targetDevice}", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.SemiBold)
+                        Spacer(Modifier.height(24.dp))
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                            Switch(checked = r.isActive, onCheckedChange = { vm.toggleRule(r.id) })
+                            OutlinedButton(onClick = {
+                                Toast.makeText(ctx, "Matter RPC: COMMAND_${r.actionValue}", Toast.LENGTH_LONG).show()
+                                vm.logToTerminal("[ACTION] Executed Local Transaction Packet -> ${r.targetDevice}")
+                            }) {
+                                Text("Test Packet")
+                            }
                         }
                     }
                 }
@@ -546,38 +576,47 @@ fun DiagnosticsTab(vm: SmartHomeViewModel) {
     val logs by vm.terminalLogs.collectAsState()
     val live by vm.liveData.collectAsState()
     
-    Column(Modifier.fillMaxSize().background(Color(0xFF0F111A)).padding(16.dp)) {
+    Column(Modifier.fillMaxSize()) {
         Spacer(Modifier.windowInsetsTopHeight(WindowInsets.statusBars))
+        Text("Diagnostics & Privacy", style = MaterialTheme.typography.headlineMedium, color = MaterialTheme.colorScheme.onSurface, modifier = Modifier.padding(horizontal = 24.dp, vertical = 16.dp), fontWeight = FontWeight.Bold)
         
-        Text("Network Telemetry", color = Color(0xFF00E676), fontWeight = FontWeight.Bold)
+        Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.tertiaryContainer), modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
+            Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+                Icon(Icons.Default.Shield, contentDescription = null, tint = MaterialTheme.colorScheme.onTertiaryContainer, modifier = Modifier.size(40.dp))
+                Spacer(Modifier.width(16.dp))
+                Column {
+                    Text("Privacy Lock Active", color = MaterialTheme.colorScheme.onTertiaryContainer, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleMedium)
+                    Text("Raw WiFi CSI computed locally. Zero cameras, zero cloud.", color = MaterialTheme.colorScheme.onTertiaryContainer, style = MaterialTheme.typography.bodySmall)
+                }
+            }
+        }
+        
+        Spacer(Modifier.height(24.dp))
+        Text("Telemetry Devices", style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(horizontal = 24.dp), color = MaterialTheme.colorScheme.primary)
         Spacer(Modifier.height(8.dp))
-        LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        LazyRow(contentPadding = PaddingValues(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             items(live.discoveredDevices) { d ->
-                Card(colors = CardDefaults.cardColors(Color(0xFF161925))) {
-                    Column(Modifier.padding(12.dp)) {
-                        Text(d.name, color = Color.White, fontWeight = FontWeight.Bold, fontSize = 14.sp)
-                        Text("${d.signalStrength} dBm", color = Color(0xFF00E676), fontSize = 12.sp)
+                Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant), modifier = Modifier.width(160.dp)) {
+                    Column(Modifier.padding(16.dp)) {
+                        Icon(Icons.Default.BugReport, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                        Spacer(Modifier.height(8.dp))
+                        Text(d.name, color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleSmall)
+                        Text("${d.signalStrength} dBm", color = MaterialTheme.colorScheme.secondary, style = MaterialTheme.typography.labelSmall)
                     }
                 }
             }
         }
         
-        Spacer(Modifier.height(16.dp))
-        Text("Live Hex-Style Log Terminal", color = Color(0xFF00E676), fontWeight = FontWeight.Bold)
+        Spacer(Modifier.height(24.dp))
+        Text("System Event Logs", style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(horizontal = 24.dp), color = MaterialTheme.colorScheme.primary)
         Spacer(Modifier.height(8.dp))
-        Card(colors = CardDefaults.cardColors(Color.Black), shape = RoundedCornerShape(8.dp), modifier = Modifier.fillMaxWidth().weight(1f)) {
-            LazyColumn(Modifier.padding(12.dp)) {
-                items(logs) { l -> Text(l, color = Color(0xFF00E676), fontFamily = FontFamily.Monospace, fontSize = 12.sp) }
+        Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant), shape = RoundedCornerShape(16.dp), modifier = Modifier.fillMaxWidth().weight(1f).padding(horizontal = 16.dp, vertical = 8.dp)) {
+            LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(16.dp)) {
+                items(logs) { l -> 
+                    Text(l, color = MaterialTheme.colorScheme.onSurfaceVariant, fontFamily = FontFamily.Monospace, fontSize = 11.sp, modifier = Modifier.padding(vertical = 2.dp), lineHeight = 14.sp) 
+                }
             }
         }
-        
-        Spacer(Modifier.height(16.dp))
-        Card(colors = CardDefaults.cardColors(Color(0xFF1B5E20)), modifier = Modifier.fillMaxWidth()) {
-            Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.Default.Shield, contentDescription = null, tint = Color.Green, modifier = Modifier.size(32.dp))
-                Spacer(Modifier.width(12.dp))
-                Text("Privacy Lock Active: Raw WiFi CSI computation running locally. Zero cameras used. Zero data uploaded to cloud environments.", color = Color.Green, fontSize = 12.sp, fontWeight = FontWeight.Bold)
-            }
-        }
+        Spacer(modifier = Modifier.padding(bottom = 16.dp))
     }
 }
